@@ -1,34 +1,25 @@
-﻿name: build
+name: build-default
 
 on:
-    push:
-    pull_request:
-        branches: [ master ]
-        paths:
-        - '**.cs'
-        - '**.csproj'
-
-env:
-    DOTNET_VERSION: '6.2.3' # The .NET SDK version to use
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
 
 jobs:
-    build:
+  build:
 
-        name: build-${{matrix.os}}
-        runs-on: ${{ matrix.os }}
-        strategy:
-            matrix:
-                os: [ubuntu-latest, windows-latest, macOS-latest]
+    runs-on: ubuntu-latest
 
-        steps:
-        - uses: actions/checkout@v3
-        - name: Setup .NET Core
-            uses: actions/setup-dotnet@v2
-            with:
-                dotnet-version: ${{ env.DOTNET_VERSION }}
-
-        - name: Install dependencies
-            run: dotnet restore
-            
-        - name: Build
-            run: dotnet build --configuration Release --no-restore
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
