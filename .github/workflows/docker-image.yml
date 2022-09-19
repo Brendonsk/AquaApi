@@ -1,18 +1,19 @@
 name: Docker Image CI
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    push:
+        branches: [ "master" ]
+    pull_request:
+        branches: [ "master" ]
 
 jobs:
+    build:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./app             
 
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag mqtt-api-pg:$(date +%s)
+        steps:
+        - uses: actions/checkout@v3
+        - name: Build the Docker image
+          run: docker build . --file Dockerfile --tag mqtt-api-pg:$(date +%s)
