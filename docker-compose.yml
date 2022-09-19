@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  mqttapipg:
+    image: ${DOCKER_REGISTRY-}mqttapipg
+    build:
+      context: .
+      dockerfile: Dockerfile
