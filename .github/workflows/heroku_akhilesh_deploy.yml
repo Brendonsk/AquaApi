@@ -1,0 +1,18 @@
+﻿name: Heroku Deploy
+
+on:
+    push:
+        branches: [ "master" ]
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Deploy to Heroku
+          uses: AkhileshNS/heroku-deploy@v3.12.12
+          with:
+            heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+            heroku_email: "brendonbenevides@gmail.com"
+            heroku_app_name: "dotnet-deploy-test"
+            branch: "master"
+            usedocker: "true"
