@@ -16,3 +16,5 @@ jobs:
                 heroku_app_name: "dotnet-deploy-test"
                 branch: "master"
                 usedocker: "true"
+            env:
+                HD_ASPNETCORE_ENVIRONMENT: "Development"
