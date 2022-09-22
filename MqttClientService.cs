@@ -7,9 +7,11 @@ namespace MqttApiPg
 {
     public class MqttClientService: BackgroundService
     {
-        private readonly ILogger logger;
+        public readonly ILogger logger;
         private readonly string serviceName;
         private static double BytesDivider => 1048576.0;
+        public ManagedMqttClient mqttClient;
+
         public MqttServiceConfiguration MqttServiceConfiguration { get; set; }
 
         public MqttClientService(MqttServiceConfiguration mqttServiceConfiguration, string serviceName)
@@ -17,6 +19,7 @@ namespace MqttApiPg
             MqttServiceConfiguration = mqttServiceConfiguration;
             this.logger = Log.ForContext("Type", nameof(MqttClientService));
             this.serviceName = serviceName;
+            this.mqttClient = StartMqttManagedClient();
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
@@ -27,7 +30,7 @@ namespace MqttApiPg
             await base.StartAsync(cancellationToken);
         }
 
-        private void StartMqttManagedClient()
+        private ManagedMqttClient StartMqttManagedClient()
         {
             var optionsBuilder = new ManagedMqttClientOptionsBuilder()
                 .WithClientOptions(
@@ -38,9 +41,9 @@ namespace MqttApiPg
                         .Build()
                 );
 
-            ManagedMqttClient mqttClient = (ManagedMqttClient)new MqttFactory().CreateManagedMqttClient();
+            var client = (ManagedMqttClient)new MqttFactory().CreateManagedMqttClient();
 
-            mqttClient.ApplicationMessageReceivedAsync += args => {
+            client.ApplicationMessageReceivedAsync += args => {
                 var payload = args.ApplicationMessage?.Payload == null ? null : Encoding.UTF8.GetString(args.ApplicationMessage.Payload);
                 this.logger.Information("Received: Topic={Topic}; Message={Message}",
                     args.ApplicationMessage?.Topic,
@@ -48,9 +51,10 @@ namespace MqttApiPg
                 return Task.CompletedTask;
             };
 
-            mqttClient.StartAsync(optionsBuilder.Build());
+            client.StartAsync(optionsBuilder.Build());
 
-            mqttClient.SubscribeAsync(new List<MqttTopicFilter>  { new MqttTopicFilterBuilder().WithTopic("brendon").Build() });
+            client.SubscribeAsync(new List<MqttTopicFilter>  { new MqttTopicFilterBuilder().WithTopic("brendon").Build() });
+            return client;
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)

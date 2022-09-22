@@ -9,6 +9,7 @@ namespace MqttApiPg
         private readonly ILogger logger;
         private readonly string serviceName;
         private static double BytesDivider => 1048576.0;
+        
         public MqttServiceConfiguration MqttServiceConfiguration { get; set; }
 
         public MqttService(MqttServiceConfiguration mqttServiceConfiguration, string serviceName)

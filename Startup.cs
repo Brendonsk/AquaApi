@@ -30,6 +30,7 @@
             services.AddSingleton<IHostedService>(p => p.GetRequiredService<MqttService>());
             services.AddSingleton<IHostedService>(p => p.GetRequiredService<MqttClientService>());
 
+            services.AddControllers();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -50,7 +51,8 @@
 
             
 
-            app.UseEndpoints(endpoints => { 
+            app.UseEndpoints(endpoints => {
+                endpoints.MapControllers();
                 endpoints.MapGet("/weatherforecast", () =>
                 {
                     var forecast = Enumerable.Range(1, 5).Select(index =>
