@@ -1,4 +1,8 @@
-﻿namespace MqttApiPg
+﻿using MQTTnet.Client;
+using MQTTnet.Extensions.ManagedClient;
+using MQTTnet.Server;
+
+namespace MqttApiPg
 {
     public class MqttService : BackgroundService
     {
@@ -7,7 +11,7 @@
         private static double BytesDivider => 1048576.0;
         public MqttServiceConfiguration MqttServiceConfiguration { get; set; }
 
-        public MqttService(string serviceName, MqttServiceConfiguration mqttServiceConfiguration)
+        public MqttService(MqttServiceConfiguration mqttServiceConfiguration, string serviceName)
         {
             MqttServiceConfiguration = mqttServiceConfiguration;
             this.logger = Log.ForContext("Type", nameof(MqttService));
@@ -146,7 +150,7 @@
             var payload = args.ApplicationMessage?.Payload == null ? null : Encoding.UTF8.GetString(args.ApplicationMessage.Payload);
 
             this.logger.Information(
-                "Message: CLientId = {ClientId}, Topic = {Topic}, Payload = {Payload}, QoS = {QoS}, Retain-Flag = {RetainFlag}",
+                "Message: ClientId = {ClientId}, Topic = {Topic}, Payload = {Payload}, QoS = {QoS}, Retain-Flag = {RetainFlag}",
                 args.ClientId,
                 args.ApplicationMessage?.Topic,
                 payload,

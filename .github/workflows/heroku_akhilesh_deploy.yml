@@ -2,7 +2,7 @@
 
 on:
     push:
-        branches: [ "master" ]
+        branches: [ "master", "mqtt_integration" ]
 
 jobs:
     deploy:

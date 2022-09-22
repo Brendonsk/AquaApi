@@ -1,68 +1,86 @@
-using MqttApiPg;
-using MQTTnet.AspNetCore;
+namespace MqttApiPg;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-//builder.Services.AddSingleton(_ => new MqttService(this.mqttServiceConfiguration, this.serviceName.Name ?? "MqttService"));
-builder.Services.AddHostedMqttServerWithServices(options =>
+public class Program
 {
-    var s = options.ServiceProvider.GetRequiredService<MqttService>();
-    s.ConfigureMqttServerOptions(options);
+    private static IConfigurationRoot? config;
 
-    options.
-});
-//builder.Services.AddMqttConnectionHandler();
-//builder.Services.AddMqttWebSocketServerAdapter();
-// FIXME
+    public static string EnvironmentName => Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 
-var app = builder.Build();
+    public static MqttServiceConfiguration Configuration { get; set; } = new();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
+    public static AssemblyName ServiceName => Assembly.GetExecutingAssembly().GetName();
+
+    public static async Task<int> Main(string[] args)
     {
-        options.SwaggerEndpoint("./swagger/v1/swagger.json", "v1");
-        options.RoutePrefix = string.Empty;
-    });
-}
+        ReadConfiguration();
+        SetupLogging();
 
-app.UseHttpsRedirection();
-app.UseRouting();
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapMqtt("/mqtt");
-});
-//app.UseMqttServer(server => server.);
+        try
+        {
+            Log.Information("Starting {ServiceName}, Version {Version}...", ServiceName.Name, ServiceName.Version);
+            var currentLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            await CreateHostBuilder(args, currentLocation!).Build().RunAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Host terminated unexpectedly.");
+            return 1;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+        return 0;
+    }
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateTime.Now.AddDays(index),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    private static IHostBuilder CreateHostBuilder(string[] args, string currentLocation) =>
+        Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(
+            webBuilder =>
+            {
+                webBuilder.UseContentRoot(currentLocation);
+                webBuilder.UseStartup<Startup>();
+            })
+            .UseSerilog()
+            .UseWindowsService()
+            .UseSystemd();
 
-app.Run();
+    private static void ReadConfiguration()
+    {
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddJsonFile("appsettings.json", false, true);
 
-internal record WeatherForecast(DateTime Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        if (!string.IsNullOrWhiteSpace(EnvironmentName))
+        {
+            var appsettingsFileName = $"appsettings.{EnvironmentName}.json";
+
+            if (File.Exists(appsettingsFileName))
+            {
+                configurationBuilder.AddJsonFile(appsettingsFileName, false, true);
+            }
+        }
+
+        config = configurationBuilder.Build();
+        config.Bind(ServiceName.Name, Configuration);
+    }
+
+    private static void SetupLogging()
+    {
+        var loggerConfiguration = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .Enrich.WithExceptionDetails()
+            .Enrich.WithMachineName()
+            .WriteTo.Console();
+
+        if (EnvironmentName != "Development")
+        {
+            loggerConfiguration
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                .MinimumLevel.Override("Orleans", LogEventLevel.Information)
+                .MinimumLevel.Information();
+        }
+
+        Log.Logger = loggerConfiguration.CreateLogger();
+    }
 }
