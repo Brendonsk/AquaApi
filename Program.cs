@@ -1,4 +1,19 @@
+using MqttApiPg;
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .Enrich.WithExceptionDetails()
+    .Enrich.WithMachineName()
+    .WriteTo.Console()
+
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("Orleans", LogEventLevel.Information)
+    .MinimumLevel.Information()
+
+    .CreateBootstrapLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Host
     .UseSerilog()
     .UseWindowsService()
@@ -7,7 +22,16 @@ builder.Host
 builder.Services
     .AddEndpointsApiExplorer()
     .AddSwaggerGen()
-    .AddControllers();
+
+    .AddOptions<MqttServiceOptions>()
+        .Bind(builder.Configuration.GetSection(
+            Assembly.GetExecutingAssembly().GetName().Name)
+        )
+        .ValidateDataAnnotations();
+
+builder.Services.AddSingleton<MqttService>();
+
+builder.Services.AddControllers();
 
 var app = builder.Build();
 

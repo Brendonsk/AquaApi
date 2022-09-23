@@ -12,9 +12,9 @@ namespace MqttApiPg
         private static double BytesDivider => 1048576.0;
         public ManagedMqttClient mqttClient;
 
-        public MqttServiceConfiguration MqttServiceConfiguration { get; set; }
+        public MqttServiceOptions MqttServiceConfiguration { get; set; }
 
-        public MqttClientService(MqttServiceConfiguration mqttServiceConfiguration, string serviceName)
+        public MqttClientService(MqttServiceOptions mqttServiceConfiguration, string serviceName)
         {
             MqttServiceConfiguration = mqttServiceConfiguration;
             this.logger = Log.ForContext("Type", nameof(MqttClientService));

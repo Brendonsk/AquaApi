@@ -1,4 +1,5 @@
-﻿using MQTTnet.Client;
+﻿using Microsoft.Extensions.Options;
+using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient;
 using MQTTnet.Server;
 
@@ -6,24 +7,38 @@ namespace MqttApiPg
 {
     public class MqttService : BackgroundService
     {
-        private readonly ILogger logger;
+        private readonly ILogger<MqttService> _logger;
+        private readonly IOptions<MqttServiceOptions> _config;
         private readonly string serviceName;
         private static double BytesDivider => 1048576.0;
-        
-        public MqttServiceConfiguration MqttServiceConfiguration { get; set; }
 
-        public MqttService(MqttServiceConfiguration mqttServiceConfiguration, string serviceName)
+        public MqttService(IOptions<MqttServiceOptions> config, ILogger<MqttService> logger)
         {
-            MqttServiceConfiguration = mqttServiceConfiguration;
-            this.logger = Log.ForContext("Type", nameof(MqttService));
-            this.serviceName = serviceName;
+            _config = config;
+            _logger = logger;
+
+            try
+            {
+                var configValue = _config.Value;
+
+            }
+            catch (OptionsValidationException ex)
+            {
+                foreach (var failure in ex.Failures)
+                {
+                    _logger.LogError(failure);
+                }
+                throw;
+            }
+
+
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            this.logger.Information("Starting service");
+            this._logger.Information("Starting service");
             this.StartMqttServer();
-            this.logger.Information("Service started");
+            this._logger.Information("Service started");
             await base.StartAsync(cancellationToken);
         }
 
@@ -37,11 +52,11 @@ namespace MqttApiPg
             try
             {
                 this.LogMemoryInformation();
-                await Task.Delay(this.MqttServiceConfiguration.DelayInMilliSeconds, cancellationToken);
+                await Task.Delay(this._config.DelayInMilliSeconds, cancellationToken);
             }
             catch (Exception ex)
             {
-                this.logger.Error($"An error ocurred: {ex}");
+                this._logger.Error($"An error ocurred: {ex}");
             }
         }
 
@@ -49,7 +64,7 @@ namespace MqttApiPg
         {
             try
             {
-                var currentUser = this.MqttServiceConfiguration.Users.FirstOrDefault(u => u.UserName == args.UserName);
+                var currentUser = this._config.Users.FirstOrDefault(u => u.UserName == args.UserName);
 
                 if (
                     currentUser is null |
@@ -68,7 +83,7 @@ namespace MqttApiPg
             }
             catch (Exception ex)
             {
-                this.logger.Error($"An error ocurred: {ex}");
+                this._logger.Error($"An error ocurred: {ex}");
                 return Task.FromException(ex);
             }
         }
@@ -83,7 +98,7 @@ namespace MqttApiPg
             }
             catch (Exception ex)
             {
-                this.logger.Error($"An error occurred: {ex}");
+                this._logger.Error($"An error occurred: {ex}");
                 return Task.FromException(ex);
             }
         }
@@ -98,7 +113,7 @@ namespace MqttApiPg
             }
             catch (Exception ex)
             {
-                this.logger.Error("An error occurred: {Exception}.", ex);
+                this._logger.Error("An error occurred: {Exception}.", ex);
                 return Task.FromException(ex);
             }
         }
@@ -107,8 +122,8 @@ namespace MqttApiPg
         {
             var optionsBuilder = new MqttServerOptionsBuilder()
                 .WithDefaultEndpoint()
-                .WithDefaultEndpointPort(this.MqttServiceConfiguration.Port)
-                .WithEncryptedEndpointPort(this.MqttServiceConfiguration.TlsPort);
+                .WithDefaultEndpointPort(this._config.Port)
+                .WithEncryptedEndpointPort(this._config.TlsPort);
 
             var mqttServer = new MqttFactory().CreateMqttServer(optionsBuilder.Build());
             mqttServer.ValidatingConnectionAsync += this.ValidateConnectionAsync;
@@ -133,7 +148,7 @@ namespace MqttApiPg
 
         private void LogMessage(InterceptingSubscriptionEventArgs args, bool successfull)
         {
-            this.logger.Information(
+            this._logger.Information(
                 successfull
                     ? "New subscription: ClientId = {ClientId}, TopicFilter = {TopicFilter}"
                     : "Subscription failed for clientId = {ClientId}, TopicFilter = {TopicFilter}",
@@ -145,7 +160,7 @@ namespace MqttApiPg
         {
             var payload = args.ApplicationMessage?.Payload == null ? null : Encoding.UTF8.GetString(args.ApplicationMessage.Payload);
 
-            this.logger.Information(
+            this._logger.Information(
                 "Message: ClientId = {ClientId}, Topic = {Topic}, Payload = {Payload}, QoS = {QoS}, Retain-Flag = {RetainFlag}",
                 args.ClientId,
                 args.ApplicationMessage?.Topic,
@@ -158,7 +173,7 @@ namespace MqttApiPg
         {
             if (showPassword)
             {
-                this.logger.Information(
+                this._logger.Information(
                     "New connection: ClientId = {ClientId}, Endpoint = {Endpoint}, Username = {UserName}, Password = {Password}, CleanSession = {CleanSession}",
                     args.ClientId,
                     args.Endpoint,
@@ -168,7 +183,7 @@ namespace MqttApiPg
             }
             else
             {
-                this.logger.Information(
+                this._logger.Information(
                     "New connection: ClientId = {ClientId}, Endpoint = {Endpoint}, Username = {UserName}, CleanSession = {CleanSession}",
                     args.ClientId,
                     args.Endpoint,

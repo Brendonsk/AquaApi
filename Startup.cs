@@ -3,7 +3,7 @@
     public class Startup
     {
         private readonly AssemblyName serviceName = Assembly.GetExecutingAssembly().GetName();
-        private readonly MqttServiceConfiguration mqttServiceConfiguration = new();
+        private readonly MqttServiceOptions mqttServiceConfiguration = new();
         private readonly string[] summaries = new[]
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
