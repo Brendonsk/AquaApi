@@ -21,11 +21,6 @@ namespace MqttApiPg
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            if (!this.MqttServiceConfiguration.isValid())
-            {
-                throw new Exception("Invalid configuration");
-            }
-
             this.logger.Information("Starting service");
             this.StartMqttServer();
             this.logger.Information("Service started");

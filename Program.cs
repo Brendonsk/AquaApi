@@ -1,86 +1,27 @@
-namespace MqttApiPg;
+var builder = WebApplication.CreateBuilder(args);
+builder.Host
+    .UseSerilog()
+    .UseWindowsService()
+    .UseSystemd();
 
-public class Program
+builder.Services
+    .AddEndpointsApiExplorer()
+    .AddSwaggerGen()
+    .AddControllers();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
 {
-    private static IConfigurationRoot? config;
-
-    public static string EnvironmentName => Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-
-    public static MqttServiceConfiguration Configuration { get; set; } = new();
-
-    public static AssemblyName ServiceName => Assembly.GetExecutingAssembly().GetName();
-
-    public static async Task<int> Main(string[] args)
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
     {
-        ReadConfiguration();
-        SetupLogging();
-
-        try
-        {
-            Log.Information("Starting {ServiceName}, Version {Version}...", ServiceName.Name, ServiceName.Version);
-            var currentLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            await CreateHostBuilder(args, currentLocation!).Build().RunAsync();
-        }
-        catch (Exception ex)
-        {
-            Log.Fatal(ex, "Host terminated unexpectedly.");
-            return 1;
-        }
-        finally
-        {
-            Log.CloseAndFlush();
-        }
-
-        return 0;
-    }
-
-    private static IHostBuilder CreateHostBuilder(string[] args, string currentLocation) =>
-        Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(
-            webBuilder =>
-            {
-                webBuilder.UseContentRoot(currentLocation);
-                webBuilder.UseStartup<Startup>();
-            })
-            .UseSerilog()
-            .UseWindowsService()
-            .UseSystemd();
-
-    private static void ReadConfiguration()
-    {
-        var configurationBuilder = new ConfigurationBuilder();
-        configurationBuilder.AddJsonFile("appsettings.json", false, true);
-
-        if (!string.IsNullOrWhiteSpace(EnvironmentName))
-        {
-            var appsettingsFileName = $"appsettings.{EnvironmentName}.json";
-
-            if (File.Exists(appsettingsFileName))
-            {
-                configurationBuilder.AddJsonFile(appsettingsFileName, false, true);
-            }
-        }
-
-        config = configurationBuilder.Build();
-        config.Bind(ServiceName.Name, Configuration);
-    }
-
-    private static void SetupLogging()
-    {
-        var loggerConfiguration = new LoggerConfiguration()
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-            .Enrich.FromLogContext()
-            .Enrich.WithExceptionDetails()
-            .Enrich.WithMachineName()
-            .WriteTo.Console();
-
-        if (EnvironmentName != "Development")
-        {
-            loggerConfiguration
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                .MinimumLevel.Override("Orleans", LogEventLevel.Information)
-                .MinimumLevel.Information();
-        }
-
-        Log.Logger = loggerConfiguration.CreateLogger();
-    }
+        options.SwaggerEndpoint("./swagger/v1/swagger.json", "v1");
+        options.RoutePrefix = string.Empty;
+    });
+    app.UseHttpsRedirection();
 }
+
+//Program: https://github.com/Brendonsk/DotnetHerokuDeployTest/blob/mqtt_integration/Startup.cs
+//Startup: https://github.com/Brendonsk/DotnetHerokuDeployTest/blob/mqtt_integration/Startup.cs
+//Modelo a seguir: https://github.com/Brendonsk/DotnetHerokuDeployTest/commit/7767685dc243b793ef6aac1273164dafffdd5ef5#diff-0b69b473fe937040615d69f606751f61ddbc2e3a1849360ff2456c22afe88c0b
