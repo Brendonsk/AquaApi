@@ -1,10 +1,10 @@
 name: Docker Image CI
 
 on:
-    push:
-        branches: [ "server-with-websocket" ]
-    pull_request:
-        branches: [ "server-with-websocket" ]
+  push:
+    branches: [ "server-with-websocket" ]
+  pull_request:
+    branches: [ "server-with-websocket" ]
 
 jobs:
     build:

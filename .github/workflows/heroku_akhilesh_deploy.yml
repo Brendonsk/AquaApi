@@ -1,8 +1,10 @@
 ﻿name: Heroku Deploy
 
 on:
-    push:
-        branches: [ "server-with-websocket" ]
+  push:
+    branches: [ "server-with-websocket" ]
+  pull_request:
+    branches: [ "server-with-websocket" ]
 
 jobs:
     deploy:
