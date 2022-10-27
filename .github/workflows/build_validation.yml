@@ -2,9 +2,9 @@ name: build-default
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "server-with-websocket" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "server-with-websocket" ]
 
 jobs:
   build:
