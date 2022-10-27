@@ -2,93 +2,94 @@
 using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient;
 using MQTTnet.Server;
+using MQTTnet.Exceptions;
+using System.Xml.Schema;
+using MQTTnet.AspNetCore.Routing;
 
 namespace MqttApiPg
 {
-    public class MqttService : BackgroundService
+    public class MqttService
     {
-        private readonly ILogger<MqttService> _logger;
-        private readonly IOptions<MqttServiceOptions> _config;
-        private readonly string serviceName;
-        private static double BytesDivider => 1048576.0;
+        public readonly ILogger<MqttService> _logger;
+        public static double BytesDivider => 1048576.0;
 
-        public MqttService(IOptions<MqttServiceOptions> config, ILogger<MqttService> logger)
+        public MqttServer mqttServer;
+
+        private readonly string ClientId = "Heroku App";
+
+        public MqttService(ILogger<MqttService> logger)
         {
-            _config = config;
             _logger = logger;
-
-            try
-            {
-                var configValue = _config.Value;
-
-            }
-            catch (OptionsValidationException ex)
-            {
-                foreach (var failure in ex.Failures)
-                {
-                    _logger.LogError(failure);
-                }
-                throw;
-            }
-
-
         }
 
-        public override async Task StartAsync(CancellationToken cancellationToken)
+        public Task StartedAsync(EventArgs args)
         {
-            this._logger.Information("Starting service");
-            this.StartMqttServer();
-            this._logger.Information("Service started");
-            await base.StartAsync(cancellationToken);
-        }
-
-        public override async Task StopAsync(CancellationToken cancellationToken)
-        {
-            await base.StopAsync(cancellationToken);
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
-        {
-            try
+            if (this.mqttServer!.IsStarted)
             {
-                this.LogMemoryInformation();
-                await Task.Delay(this._config.DelayInMilliSeconds, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                this._logger.Error($"An error ocurred: {ex}");
-            }
-        }
+                this._logger.LogInformation("Service started");
+                LogMemoryInformation();
 
-        private Task ValidateConnectionAsync(ValidatingConnectionEventArgs args)
-        {
-            try
-            {
-                var currentUser = this._config.Users.FirstOrDefault(u => u.UserName == args.UserName);
-
-                if (
-                    currentUser is null |
-                    args.UserName == currentUser?.UserName |
-                    args.Password != currentUser?.Password
-                    )
-                {
-                    args.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
-                    this.LogMessage(args, true);
-                    return Task.CompletedTask;
-                }
-
-                args.ReasonCode = MqttConnectReasonCode.Success;
-                this.LogMessage(args, true);
                 return Task.CompletedTask;
             }
-            catch (Exception ex)
-            {
-                this._logger.Error($"An error ocurred: {ex}");
-                return Task.FromException(ex);
-            }
+
+            this._logger.LogError("Service failed to start");
+            return Task.FromException(
+                new MqttConfigurationException(
+                    new Exception("Server could not be started")
+                )
+            );
+            
         }
 
-        private Task InterceptSubscriptionAsync(InterceptingSubscriptionEventArgs args)
+        //public void ConfigureServerOptions(AspNetMqttServerOptionsBuilder optionsBuilder)
+        //{
+        //    optionsBuilder
+        //        .WithoutDefaultEndpoint()
+        //        .WithDefaultEndpointPort(options.Port)
+        //        .WithEncryptedEndpointPort(options.TlsPort);
+        //}
+
+        public void ConfigureServer(MqttServer server)
+        {
+            this.mqttServer = server;
+
+            server.InterceptingSubscriptionAsync += InterceptSubscriptionAsync;
+            server.InterceptingPublishAsync += InterceptApplicationMessagePublishAsync;
+            server.StartedAsync += StartedAsync;
+
+            server.SubscribeAsync(this.ClientId, "registro");
+            server.SubscribeAsync(this.ClientId, "valvula");
+        }
+
+        //public Task ValidateConnectionAsync(ValidatingConnectionEventArgs args)
+        //{
+        //    try
+        //    {
+        //        var currentUser = this._config.Value.Users.FirstOrDefault(u => u.UserName == args.UserName);
+
+        //        if (
+        //            currentUser is null |
+        //            args.UserName == currentUser?.UserName |
+        //            args.Password != currentUser?.Password
+        //            )
+        //        {
+        //            args.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
+        //            this.LogMessage(args, true);
+        //            return Task.CompletedTask;
+        //        }
+
+        //        args.ReasonCode = MqttConnectReasonCode.Success;
+        //        this.LogMessage(args, true);
+        //        return Task.CompletedTask;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        this._logger.LogError("An error ocurred: {exception}", ex);
+        //        return Task.FromException(ex);
+        //    }
+        //}
+
+        public Task InterceptSubscriptionAsync(InterceptingSubscriptionEventArgs args)
         {
             try
             {
@@ -98,12 +99,12 @@ namespace MqttApiPg
             }
             catch (Exception ex)
             {
-                this._logger.Error($"An error occurred: {ex}");
+                this._logger.LogError("An error occurred: {exception}", ex);
                 return Task.FromException(ex);
             }
         }
 
-        private Task InterceptApplicationMessagePublishAsync(InterceptingPublishEventArgs args)
+        public Task InterceptApplicationMessagePublishAsync(InterceptingPublishEventArgs args)
         {
             try
             {
@@ -113,42 +114,28 @@ namespace MqttApiPg
             }
             catch (Exception ex)
             {
-                this._logger.Error("An error occurred: {Exception}.", ex);
+                this._logger.LogError("An error occurred: {Exception}.", ex);
                 return Task.FromException(ex);
             }
         }
 
-        private void StartMqttServer()
-        {
-            var optionsBuilder = new MqttServerOptionsBuilder()
-                .WithDefaultEndpoint()
-                .WithDefaultEndpointPort(this._config.Port)
-                .WithEncryptedEndpointPort(this._config.TlsPort);
-
-            var mqttServer = new MqttFactory().CreateMqttServer(optionsBuilder.Build());
-            mqttServer.ValidatingConnectionAsync += this.ValidateConnectionAsync;
-            mqttServer.InterceptingSubscriptionAsync += this.InterceptSubscriptionAsync;
-            mqttServer.InterceptingPublishAsync += this.InterceptApplicationMessagePublishAsync;
-            mqttServer.StartAsync();
-        }
-
-        private void LogMemoryInformation()
+        public void LogMemoryInformation()
         {
             var totalMemory = GC.GetTotalMemory(false);
             var memoryInfo = GC.GetGCMemoryInfo();
             var divider = BytesDivider;
 
-            Log.Information(
+            this._logger.LogInformation(
                 "Heartbeat for service {ServiceName}: Total {Total}, heap size: {HeapSize}, memory load: {MemoryLoad}.",
-                this.serviceName,
+                "MqttApiPg",
                 $"{(totalMemory / divider):N3}",
                 $"{(memoryInfo.HeapSizeBytes / divider):N3}",
                 $"{(memoryInfo.MemoryLoadBytes / divider):N3}");
         }
 
-        private void LogMessage(InterceptingSubscriptionEventArgs args, bool successfull)
+        public void LogMessage(InterceptingSubscriptionEventArgs args, bool successfull)
         {
-            this._logger.Information(
+            this._logger.LogInformation(
                 successfull
                     ? "New subscription: ClientId = {ClientId}, TopicFilter = {TopicFilter}"
                     : "Subscription failed for clientId = {ClientId}, TopicFilter = {TopicFilter}",
@@ -156,11 +143,11 @@ namespace MqttApiPg
                 args.TopicFilter);
         }     
 
-        private void LogMessage(InterceptingPublishEventArgs args)
+        public void LogMessage(InterceptingPublishEventArgs args)
         {
             var payload = args.ApplicationMessage?.Payload == null ? null : Encoding.UTF8.GetString(args.ApplicationMessage.Payload);
 
-            this._logger.Information(
+            this._logger.LogInformation(
                 "Message: ClientId = {ClientId}, Topic = {Topic}, Payload = {Payload}, QoS = {QoS}, Retain-Flag = {RetainFlag}",
                 args.ClientId,
                 args.ApplicationMessage?.Topic,
@@ -169,27 +156,27 @@ namespace MqttApiPg
                 args.ApplicationMessage?.Retain);
         }
 
-        private void LogMessage(ValidatingConnectionEventArgs args, bool showPassword)
-        {
-            if (showPassword)
-            {
-                this._logger.Information(
-                    "New connection: ClientId = {ClientId}, Endpoint = {Endpoint}, Username = {UserName}, Password = {Password}, CleanSession = {CleanSession}",
-                    args.ClientId,
-                    args.Endpoint,
-                    args.UserName,
-                    args.Password,
-                    args.CleanSession);
-            }
-            else
-            {
-                this._logger.Information(
-                    "New connection: ClientId = {ClientId}, Endpoint = {Endpoint}, Username = {UserName}, CleanSession = {CleanSession}",
-                    args.ClientId,
-                    args.Endpoint,
-                    args.UserName,
-                    args.CleanSession);
-            }
-        }
+        //public void LogMessage(ValidatingConnectionEventArgs args, bool showPassword)
+        //{
+        //    if (showPassword)
+        //    {
+        //        this._logger.LogInformation(
+        //            "New connection: ClientId = {ClientId}, Endpoint = {Endpoint}, Username = {UserName}, Password = {Password}, CleanSession = {CleanSession}",
+        //            args.ClientId,
+        //            args.Endpoint,
+        //            args.UserName,
+        //            args.Password,
+        //            args.CleanSession);
+        //    }
+        //    else
+        //    {
+        //        this._logger.LogInformation(
+        //            "New connection: ClientId = {ClientId}, Endpoint = {Endpoint}, Username = {UserName}, CleanSession = {CleanSession}",
+        //            args.ClientId,
+        //            args.Endpoint,
+        //            args.UserName,
+        //            args.CleanSession);
+        //    }
+        //}
     }
 }

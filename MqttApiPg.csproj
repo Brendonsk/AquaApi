@@ -18,8 +18,10 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="6.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
-    <PackageReference Include="MQTTnet" Version="4.1.0.247" />
-    <PackageReference Include="MQTTnet.AspNetCore" Version="4.1.0.247" />
+    <PackageReference Include="MQTTnet" Version="4.1.1.318" />
+    <PackageReference Include="MQTTnet.AspNetCore" Version="4.1.1.318" />
+		<PackageReference Include="MQTTnet.AspNetCore.Controllers" Version="1.3.0" />
+		<PackageReference Include="MQTTnet.AspNetCore.Routing" Version="0.4.11" />
     <PackageReference Include="MQTTnet.Extensions.ManagedClient" Version="4.1.0.247" />
     <PackageReference Include="MQTTnet.Extensions.WebSocket4Net" Version="4.1.0.247" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />

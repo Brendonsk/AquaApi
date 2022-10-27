@@ -1,4 +1,13 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using MqttApiPg;
+using MqttApiPg.Controlllers;
+using MQTTnet.AspNetCore;
+using MQTTnet.AspNetCore.Routing;
+using MQTTnet.Server;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -14,6 +23,12 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.UseKestrel(
+    o =>
+    {
+        o.ListenAnyIP(int.Parse(Environment.GetEnvironmentVariable("PORT")!)); // Default HTTP pipeline
+    });
+
 builder.Host
     .UseSerilog()
     .UseWindowsService()
@@ -21,19 +36,39 @@ builder.Host
 
 builder.Services
     .AddEndpointsApiExplorer()
-    .AddSwaggerGen()
+    .AddSwaggerGen();
 
-    .AddOptions<MqttServiceOptions>()
-        .Bind(builder.Configuration.GetSection(
-            Assembly.GetExecutingAssembly().GetName().Name)
-        )
-        .ValidateDataAnnotations();
+builder.Services
+    .AddSingleton<MqttService>()
+    .AddHostedMqttServerWithServices(optionsBuilder =>
+    {
+        optionsBuilder.WithDefaultEndpoint();
+    })
+    .AddMqttConnectionHandler()
+    .AddConnections()
 
-builder.Services.AddSingleton<MqttService>();
-
-builder.Services.AddControllers();
+    .AddSingleton<MqttController>()
+    .AddControllers();
 
 var app = builder.Build();
+
+app.UseRouting();
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
+    endpoints.MapConnectionHandler<MqttConnectionHandler>(
+        "/mqtt",
+        httpConnectionDispatcherOptions => httpConnectionDispatcherOptions.WebSockets.SubProtocolSelector =
+            protocolList => protocolList.FirstOrDefault() ?? string.Empty);
+});
+
+app.UseMqttServer(server => 
+{
+    app.Services
+        .GetRequiredService<MqttService>()
+            .ConfigureServer(server);    
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -46,6 +81,4 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-//Program: https://github.com/Brendonsk/DotnetHerokuDeployTest/blob/mqtt_integration/Startup.cs
-//Startup: https://github.com/Brendonsk/DotnetHerokuDeployTest/blob/mqtt_integration/Startup.cs
-//Modelo a seguir: https://github.com/Brendonsk/DotnetHerokuDeployTest/commit/7767685dc243b793ef6aac1273164dafffdd5ef5#diff-0b69b473fe937040615d69f606751f61ddbc2e3a1849360ff2456c22afe88c0b
+app.Run();

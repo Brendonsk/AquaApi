@@ -2,7 +2,7 @@
 
 on:
     push:
-        branches: [ "master", "mqtt_integration" ]
+        branches: [ "server-with-websocket" ]
 
 jobs:
     deploy:
