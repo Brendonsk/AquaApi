@@ -2,9 +2,9 @@
 
 on:
   push:
-    branches: [ "server-with-websocket" ]
+    branches: [ "server_with_websocket" ]
   pull_request:
-    branches: [ "server-with-websocket" ]
+    branches: [ "server_with_websocket" ]
 
 jobs:
     deploy:
