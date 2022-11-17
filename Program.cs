@@ -1,5 +1,12 @@
 using MqttApiPg;
 using MqttApiPg.Controlllers;
+using MqttApiPg.Models;
+using MQTTnet.AspNetCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -13,13 +20,15 @@ Log.Logger = new LoggerConfiguration()
 
     .CreateBootstrapLogger();
 
+BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseKestrel(
-    o =>
-    {
-        o.ListenAnyIP(int.Parse(Environment.GetEnvironmentVariable("PORT")!)); // Default HTTP pipeline
-    });
+//builder.WebHost.ConfigureKestrel(
+//    o =>
+//    {
+//        o.ListenAnyIP(1883, l => l.UseMqtt());
+//        o.ListenAnyIP(int.Parse(Environment.GetEnvironmentVariable("PORT")!)); // Default HTTP pipeline
+//    });
 
 builder.Host
     .UseSerilog()
@@ -27,20 +36,28 @@ builder.Host
     .UseSystemd();
 
 builder.Services
+    .Configure<AquaDatabaseSettings>(builder.Configuration.GetSection("AquaDatabase"))
     .AddEndpointsApiExplorer()
-    .AddSwaggerGen();
+    .AddSwaggerGen(x => x.EnableAnnotations());
 
 builder.Services
+    .AddSingleton<MongoDbContext>()
     .AddSingleton<MqttService>()
     .AddHostedMqttServerWithServices(optionsBuilder =>
     {
-        optionsBuilder.WithDefaultEndpoint();
+        optionsBuilder.WithoutDefaultEndpoint();
     })
     .AddMqttConnectionHandler()
     .AddConnections()
 
     .AddSingleton<MqttController>()
-    .AddControllers();
+    .AddControllers()
+    .AddJsonOptions(
+        options => options.JsonSerializerOptions.PropertyNamingPolicy = null); ;
+
+builder.Services.Configure<AquaDatabaseSettings>(
+    builder.Configuration.GetSection("AquaDatabase")    
+);
 
 var app = builder.Build();
 
@@ -48,11 +65,11 @@ app.UseRouting();
 
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapControllers();
     endpoints.MapConnectionHandler<MqttConnectionHandler>(
         "/mqtt",
         httpConnectionDispatcherOptions => httpConnectionDispatcherOptions.WebSockets.SubProtocolSelector =
             protocolList => protocolList.FirstOrDefault() ?? string.Empty);
+    endpoints.MapControllers();
 });
 
 app.UseMqttServer(server => 
@@ -70,6 +87,7 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("./swagger/v1/swagger.json", "v1");
         options.RoutePrefix = string.Empty;
     });
+    app.UseHsts();
     app.UseHttpsRedirection();
 }
 

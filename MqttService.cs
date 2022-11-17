@@ -5,6 +5,7 @@ using MQTTnet.Server;
 using MQTTnet.Exceptions;
 using System.Xml.Schema;
 using MQTTnet.AspNetCore.Routing;
+using Microsoft.AspNetCore.Hosting.Server;
 
 namespace MqttApiPg
 {
@@ -28,6 +29,9 @@ namespace MqttApiPg
             {
                 this._logger.LogInformation("Service started");
                 LogMemoryInformation();
+
+                this.mqttServer.SubscribeAsync(this.ClientId, "registro");
+                this.mqttServer.SubscribeAsync(this.ClientId, "valvula");
 
                 return Task.CompletedTask;
             }
@@ -56,9 +60,6 @@ namespace MqttApiPg
             server.InterceptingSubscriptionAsync += InterceptSubscriptionAsync;
             server.InterceptingPublishAsync += InterceptApplicationMessagePublishAsync;
             server.StartedAsync += StartedAsync;
-
-            server.SubscribeAsync(this.ClientId, "registro");
-            server.SubscribeAsync(this.ClientId, "valvula");
         }
 
         //public Task ValidateConnectionAsync(ValidatingConnectionEventArgs args)
