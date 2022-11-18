@@ -2,9 +2,11 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "server_with_websocket" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "server_with_websocket" ]
+    branches: [ "master" ]
+  workflow_dispatch:
+    branches: [ "master" ]
 
 jobs:
     build:
