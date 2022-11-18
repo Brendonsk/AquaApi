@@ -17,4 +17,4 @@ RUN dotnet publish --no-restore "MqttApiPg.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-CMD ASPNETCORE_URLS=https://*:$PORT dotnet MqttApiPg.dll
+CMD ASPNETCORE_URLS=http://*:$PORT dotnet MqttApiPg.dll
