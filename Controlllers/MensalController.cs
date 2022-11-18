@@ -36,6 +36,19 @@ namespace MqttApiPg.Controlllers
             return mensal;
         }
 
+        [HttpGet("ano/{ano}")]
+        public async Task<ActionResult<IEnumerable<Mensal>>> GetByAno(int ano)
+        {
+            try
+            {
+                return await _context.Mensais.Find(x => x.Ano.Equals(ano)).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
         //// PUT: api/Mensal/5
         //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
@@ -100,6 +113,7 @@ namespace MqttApiPg.Controlllers
             {
                 return NotFound();
             }
+
 
             await _context.Mensais.DeleteOneAsync(x => x.Id == id);
             return NoContent();

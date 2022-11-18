@@ -10,8 +10,8 @@ namespace MqttApiPg.Entities
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string? Id { get; set; }
-
-        public string Mes { get; set; }
+        public int Mes { get; set; }
+        public int Ano { get; set; }
 
         public decimal ConsumoTotal { get; set; }
     }
