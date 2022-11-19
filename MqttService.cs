@@ -30,8 +30,8 @@ namespace MqttApiPg
                 this._logger.LogInformation("Service started");
                 LogMemoryInformation();
 
-                this.mqttServer.SubscribeAsync(this.ClientId, "registro");
-                this.mqttServer.SubscribeAsync(this.ClientId, "valvula");
+                this.mqttServer.SubscribeAsync(this.ClientId, "valvula/abrir");
+                this.mqttServer.SubscribeAsync(this.ClientId, "valvulaLog");
 
                 return Task.CompletedTask;
             }
@@ -49,8 +49,7 @@ namespace MqttApiPg
         //{
         //    optionsBuilder
         //        .WithoutDefaultEndpoint()
-        //        .WithDefaultEndpointPort(options.Port)
-        //        .WithEncryptedEndpointPort(options.TlsPort);
+        //        .WithDefaultEndpointPort(1883);
         //}
 
         public void ConfigureServer(MqttServer server)
@@ -105,18 +104,31 @@ namespace MqttApiPg
             }
         }
 
-        public Task InterceptApplicationMessagePublishAsync(InterceptingPublishEventArgs args)
+        public async Task InterceptApplicationMessagePublishAsync(InterceptingPublishEventArgs args)
         {
+            if (args.ClientId.Equals(this.ClientId))
+            {
+                return;
+            }
+
             try
             {
                 args.ProcessPublish = true;
                 this.LogMessage(args);
-                return Task.CompletedTask;
+
+                var resposta =
+                    new InjectedMqttApplicationMessage(new MqttApplicationMessageBuilder()
+                        .WithTopic("valvulaLog")
+                        .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                        .WithPayload($"{args.ClientId}: {Encoding.UTF8.GetString(args.ApplicationMessage.Payload)}")
+                        .Build());
+
+                resposta.SenderClientId= this.ClientId;
+                await this.mqttServer.InjectApplicationMessage(resposta);
             }
             catch (Exception ex)
             {
                 this._logger.LogError("An error occurred: {Exception}.", ex);
-                return Task.FromException(ex);
             }
         }
 

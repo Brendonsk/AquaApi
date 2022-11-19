@@ -19,34 +19,29 @@ namespace MqttApiPg.Controlllers
         }
 
         [HttpPost]
-        [MqttRoute("valvula")]
-        public Task PublishMessage()
+        [MqttRoute("valvula/abrir")]
+        public Task AbreValvula()
         {
             //MqttContext.ApplicationMessage.Topic
             if (_mqttService.mqttServer is not null && _mqttService.mqttServer?.IsStarted == true)
             {
-                if (MqttContext.ApplicationMessage.Topic.Equals("valvula"))
+                try
                 {
-                    try
-                    {
-                        var resposta = _mqttService.mqttServer.InjectApplicationMessage(
-                        new InjectedMqttApplicationMessage(new MqttApplicationMessageBuilder()
-                            .WithTopic("valvula")
-                            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                            .WithPayload($"{MqttContext.ClientId}: registro fechado")
-                            .Build())
-                        );
+                    var resposta = _mqttService.mqttServer.InjectApplicationMessage(
+                    new InjectedMqttApplicationMessage(new MqttApplicationMessageBuilder()
+                        .WithTopic("valvulaLog")
+                        .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                        .WithPayload($"{MqttContext.ClientId}: {MqttContext.ApplicationMessage}")
+                        .Build())
+                    );
 
-                        return Ok();
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError("{ex}", ex.ToString());
-                        return Task.FromException(ex);
-                    }
+                    return Ok();
                 }
-
-                return Task.FromException(new Exception("Invalid topic"));
+                catch (Exception ex)
+                {
+                    _logger.LogError("{ex}", ex.ToString());
+                    return Task.FromException(ex);
+                }
             }
             
             return Task.FromException(new Exception("Server not started"));

@@ -5,7 +5,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using MqttApiPg.Entities;
 
 namespace MqttApiPg.Controlllers
@@ -41,6 +44,29 @@ namespace MqttApiPg.Controlllers
 
             return diaria;
         }
+
+        //[HttpGet("ultimaDoMes/{mes}")]
+        //public async Task<ActionResult<Diaria?>> GetUltimaLeituraDiariaDoMes(int mes)
+        //{
+        //    //FilterDefinition<Diaria> filter = Builders<Diaria>.Filter.
+
+        //    try
+        //    {
+        //        var coll = _context.Diarias.AsQueryable()
+        //            .GroupBy(x => x.DiaHora.Truncate(DateTimeUnit.Month))
+        //            .Select(x => new { Bucket = x.Key, FirstDocumentInBucket = x.First() });
+
+        //        var coll2 = _context.Diarias.AsQueryable()
+        //            .Where<Diaria>(x => (x.DiaHora.Truncate(DateTimeUnit.Month)).Month.Equals(mes))
+        //            .FirstOrDefaultAsync();
+
+        //        return await coll2;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(ex);
+        //    }
+        //}
 
         //// PUT: api/Diaria/5
         //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754

@@ -14,6 +14,7 @@ namespace MqttApiPg.Entities
 
         public decimal Valor { get; set; }
 
+        [BsonRepresentation(BsonType.DateTime)]
         public DateTime DiaHora { get; set; }
 
         public bool Situacao { get; set; }
