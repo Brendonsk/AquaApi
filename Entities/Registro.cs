@@ -13,7 +13,7 @@ namespace MqttApiPg.Entities
 
         public DateTime DataOcorrencia { get; set; }
 
-        public DateTime DataSolucao { get; set; }
+        public DateTime? DataSolucao { get; set; }
 
         public string Mensagem { get; set; }
 

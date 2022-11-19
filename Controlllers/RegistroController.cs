@@ -36,6 +36,19 @@ namespace MqttApiPg.Controlllers
             return registro;
         }
 
+        [HttpGet("emAberto")]
+        public async Task<ActionResult<IEnumerable<Registro>>> GetAllFalseRegistros()
+        {
+            try
+            {
+                return await _context.Registros.Find(x => !x.DataSolucao.HasValue).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
         //// PUT: api/Registro/5
         //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]

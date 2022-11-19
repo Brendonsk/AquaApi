@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using MqttApiPg.Entities;
 using MqttApiPg.Models;
 
@@ -12,6 +13,7 @@ namespace MqttApiPg
         public MongoDbContext(IOptions<AquaDatabaseSettings> dbSettings)
         {
             var clientSettings = MongoClientSettings.FromConnectionString(dbSettings.Value.ConnectionString);
+            clientSettings.LinqProvider = LinqProvider.V3;
             
             //Configurar opções adicionais do banco aqui
 
