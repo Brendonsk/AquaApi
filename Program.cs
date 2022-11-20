@@ -41,8 +41,8 @@ builder.Services
     .AddJsonOptions(
         options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-builder.Services.AddSingleton<MqttServer>();
-//builder.Services.AddSingleton<MqttService>();
+//builder.Services.AddSingleton<MqttServer>();
+builder.Services.AddSingleton<MqttService>();
 builder.Services.AddMqttControllers();
 builder.Services.AddMqttDefaultJsonOptions(new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
@@ -73,9 +73,9 @@ app.UseEndpoints(endpoints =>
 app.UseMqttServer(server =>
 {
     server.WithAttributeRouting(app.Services, allowUnmatchedRoutes: true);
-    //app.Services
-    //    .GetRequiredService<MqttService>()
-    //        .ConfigureServer(server);
+    app.Services
+        .GetRequiredService<MqttService>()
+            .ConfigureServer(server);
 });
 
 if (app.Environment.IsDevelopment())

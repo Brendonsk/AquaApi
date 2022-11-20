@@ -16,7 +16,7 @@ namespace MqttApiPg
 
         public MqttServer mqttServer;
 
-        private readonly string ClientId = "Heroku App";
+        public readonly string ClientId = "Heroku App";
 
         public MqttService(ILogger<MqttService> logger)
         {
@@ -104,31 +104,17 @@ namespace MqttApiPg
             }
         }
 
-        public async Task InterceptApplicationMessagePublishAsync(InterceptingPublishEventArgs args)
+        public Task InterceptApplicationMessagePublishAsync(InterceptingPublishEventArgs args)
         {
-            if (args.ClientId.Equals(this.ClientId))
-            {
-                return;
-            }
-
             try
             {
                 args.ProcessPublish = true;
                 this.LogMessage(args);
-
-                var resposta =
-                    new InjectedMqttApplicationMessage(new MqttApplicationMessageBuilder()
-                        .WithTopic("valvulaLog")
-                        .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                        .WithPayload($"{args.ClientId}: {Encoding.UTF8.GetString(args.ApplicationMessage.Payload)}")
-                        .Build());
-
-                resposta.SenderClientId= this.ClientId;
-                await this.mqttServer.InjectApplicationMessage(resposta);
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
-                this._logger.LogError("An error occurred: {Exception}.", ex);
+                return Task.FromException(ex);
             }
         }
 
