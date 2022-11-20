@@ -18,7 +18,7 @@ namespace MqttApiPg
             //Configurar opções adicionais do banco aqui
 
             var mongoClient = new MongoClient(clientSettings);
-            _database = mongoClient.GetDatabase("Aqua");
+            _database = mongoClient.GetDatabase(dbSettings.Value.DatabaseName);
         }
 
         public IMongoCollection<Registro> Registros => _database.GetCollection<Registro>("registro");

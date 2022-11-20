@@ -30,8 +30,8 @@ namespace MqttApiPg
                 this._logger.LogInformation("Service started");
                 LogMemoryInformation();
 
-                this.mqttServer.SubscribeAsync(this.ClientId, "valvula/abrir");
-                this.mqttServer.SubscribeAsync(this.ClientId, "valvulaLog");
+                //this.mqttServer.SubscribeAsync(this.ClientId, "valvula/abrir");
+                //this.mqttServer.SubscribeAsync(this.ClientId, "valvulaLog");
 
                 return Task.CompletedTask;
             }
