@@ -9,10 +9,12 @@ namespace MqttApiPg.Controlllers
     public class RegistroController : ControllerBase
     {
         private readonly MongoDbContext _context;
+        private readonly ILogger<RegistroController> _logger;
 
-        public RegistroController(MongoDbContext context)
+        public RegistroController(MongoDbContext context, ILogger<RegistroController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         // GET: api/Registro
@@ -91,14 +93,8 @@ namespace MqttApiPg.Controlllers
             }
             catch (Exception ex)
             {
-                if (RegistroExists(registro.Id ?? string.Empty))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogError("Exception thrown on POST endpoint 'api/registro: {ex}", ex);
+                return BadRequest(ex);
             }
 
             return CreatedAtAction("GetRegistro", new { id = registro.Id }, registro);
