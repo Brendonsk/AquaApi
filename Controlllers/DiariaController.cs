@@ -18,12 +18,10 @@ namespace MqttApiPg.Controlllers
     public class DiariaController : ControllerBase
     {
         private readonly MongoDbContext _context;
-        private readonly MqttService _service;
 
-        public DiariaController(MongoDbContext context, MqttService service)
+        public DiariaController(MongoDbContext context)
         {
             _context = context;
-            _service = service;
         }
 
         // GET: api/Diaria

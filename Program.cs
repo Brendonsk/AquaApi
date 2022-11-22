@@ -3,9 +3,12 @@ using MqttApiPg.Models;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson;
-using MQTTnet.AspNetCore.Routing;
 using System.Text.Json;
-using MqttApiPg.MqttControllers;
+using MqttApiPg.Settings;
+using System.Configuration;
+using MqttApiPg.Extensions;
+using Serilog;
+using Serilog.Exceptions;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -18,17 +21,13 @@ Log.Logger = new LoggerConfiguration()
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseKestrel(
-    o =>
-    {
-        o.ListenAnyIP(int.Parse(Environment.GetEnvironmentVariable("PORT")!)); // Default HTTP pipeline
-        o.ListenAnyIP(1883, l => l.UseMqtt()); // Mqtt
-    });
+BrokerHostSettings brokerHostSettings = new BrokerHostSettings();
+builder.Configuration.GetSection(nameof(BrokerHostSettings)).Bind(brokerHostSettings);
+AppSettingsProvider.BrokerHostSettings = brokerHostSettings;
 
-builder.Host
-    .UseWindowsService()
-    .UseSystemd()
-    .UseSerilog();
+ClientSettings clientSettings = new ClientSettings();
+builder.Configuration.GetSection(nameof(ClientSettings)).Bind(clientSettings);
+AppSettingsProvider.ClientSettings = clientSettings;
 
 builder.Services
     .Configure<AquaDatabaseSettings>(builder.Configuration.GetSection("AquaDatabase"))
@@ -41,19 +40,9 @@ builder.Services
     .AddJsonOptions(
         options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-//builder.Services.AddSingleton<MqttServer>();
-builder.Services.AddSingleton<MqttService>();
-builder.Services.AddMqttControllers();
-builder.Services.AddMqttDefaultJsonOptions(new JsonSerializerOptions(JsonSerializerDefaults.Web));
+builder.Services.AddMqttClientHostedService();
 
 builder.Services
-    .AddHostedMqttServerWithServices(optionsBuilder =>
-    {
-        optionsBuilder.WithoutDefaultEndpoint();
-        optionsBuilder.WithDefaultEndpointPort(1883);
-        optionsBuilder.WithPersistentSessions();
-    })
-    .AddMqttConnectionHandler()
     .AddConnections();
 
 var app = builder.Build();
@@ -64,18 +53,10 @@ app.UseAuthorization();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
-    endpoints.MapConnectionHandler<MqttConnectionHandler>(
-        "/mqtt",
-        httpConnectionDispatcherOptions => httpConnectionDispatcherOptions.WebSockets.SubProtocolSelector =
-            protocolList => protocolList.FirstOrDefault() ?? string.Empty);
-});
-
-app.UseMqttServer(server =>
-{
-    server.WithAttributeRouting(app.Services, allowUnmatchedRoutes: true);
-    app.Services
-        .GetRequiredService<MqttService>()
-            .ConfigureServer(server);
+    //endpoints.MapConnectionHandler<MqttConnectionHandler>(
+    //    "/mqtt",
+    //    httpConnectionDispatcherOptions => httpConnectionDispatcherOptions.WebSockets.SubProtocolSelector =
+    //        protocolList => protocolList.FirstOrDefault() ?? string.Empty);
 });
 
 if (app.Environment.IsDevelopment())
