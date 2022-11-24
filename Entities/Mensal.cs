@@ -4,12 +4,8 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace MqttApiPg.Entities
 {
-    public class Mensal
+    public class Mensal: BaseEntity
     {
-        [SwaggerSchema(ReadOnly = true)]
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string? Id { get; set; }
         public int Mes { get; set; }
         public int Ano { get; set; }
 

@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using MqttApiPg.Entities;
+using MqttApiPg.Services;
+using System.Diagnostics;
 
 namespace MqttApiPg.Controlllers
 {
@@ -8,45 +10,38 @@ namespace MqttApiPg.Controlllers
     [ApiController]
     public class MensalController : ControllerBase
     {
-        private readonly MongoDbContext _context;
+        private readonly MensalService _mensalService;
 
-        public MensalController(MongoDbContext context)
+        public MensalController(MensalService mensalService)
         {
-            _context = context;
+            _mensalService = mensalService;
         }
 
         // GET: api/Mensal
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Mensal>>> GetMensais()
         {
-            return await _context.Mensais.Find(_ => true).ToListAsync();
+            return await _mensalService.GetAsync();
         }
 
         // GET: api/Mensal/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Mensal>> GetMensal(string id)
         {
-            var mensal = await _context.Mensais.Find(x => x.Id == id).SingleOrDefaultAsync();
+            var result = await _mensalService.GetByIdAsync(id);
 
-            if (mensal == null)
+            if (result == null)
             {
                 return NotFound();
             }
 
-            return mensal;
+            return result;
         }
 
         [HttpGet("ano/{ano}")]
         public async Task<ActionResult<IEnumerable<Mensal>>> GetByAno(int ano)
         {
-            try
-            {
-                return await _context.Mensais.Find(x => x.Ano.Equals(ano)).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex);
-            }
+            throw new NotImplementedException();
         }
 
         //// PUT: api/Mensal/5
@@ -58,26 +53,16 @@ namespace MqttApiPg.Controlllers
             {
                 return BadRequest();
             }
-
             mensal.Id = id;
 
-            try
+            var result = await _mensalService.UpdateAsync(id, mensal);
+
+            if (result is not null)
             {
-                await _context.Mensais.ReplaceOneAsync<Mensal>(x => x.Id == id, mensal);
-            }
-            catch (Exception ex)
-            {
-                if (!MensalExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return new OkObjectResult(result);
             }
 
-            return NoContent();
+            return NotFound();
         }
 
         // POST: api/Mensal
@@ -85,43 +70,22 @@ namespace MqttApiPg.Controlllers
         [HttpPost]
         public async Task<ActionResult<Mensal>> PostMensal(Mensal mensal)
         {
-            try
-            {
-                await _context.Mensais.InsertOneAsync(mensal);
-            }
-            catch (Exception ex)
-            {
-                if (MensalExists(mensal.Id ?? string.Empty))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _mensalService.CreateAsync(mensal);
 
-            return CreatedAtAction("GetMensal", new { id = mensal.Id }, mensal);
+            return CreatedAtAction(nameof(GetMensal), new { id = mensal.Id }, mensal);
         }
 
         // DELETE: api/Mensal/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMensal(string id)
         {
-            var mensal = await _context.Mensais.FindAsync(x => x.Id == id);
-            if (mensal is null)
+            var result = await _mensalService.DeleteAsync(id);
+            if (result is not null)
             {
-                return NotFound();
+                return new OkObjectResult(result);
             }
 
-
-            await _context.Mensais.DeleteOneAsync(x => x.Id == id);
-            return NoContent();
-        }
-
-        private bool MensalExists(string id)
-        {
-            return _context.Mensais.Find(x => x.Id == id).Any();
+            return NotFound();
         }
     }
 }

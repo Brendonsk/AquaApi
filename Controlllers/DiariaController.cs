@@ -1,15 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
 using MqttApiPg.Entities;
+using MqttApiPg.Services;
 
 namespace MqttApiPg.Controlllers
 {
@@ -17,32 +8,31 @@ namespace MqttApiPg.Controlllers
     [ApiController]
     public class DiariaController : ControllerBase
     {
-        private readonly MongoDbContext _context;
+        private readonly DiariaService _diariaService;
 
-        public DiariaController(MongoDbContext context)
+        public DiariaController(DiariaService diariaService)
         {
-            _context = context;
+            _diariaService = diariaService;
         }
 
         // GET: api/Diaria
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Diaria>>> GetDiarias()
+        public async Task<ActionResult<IEnumerable<Diaria>>> GetDiariasAsync()
         {
-            return await _context.Diarias.Find(_ => true).ToListAsync();
+            return await _diariaService.GetAsync();
         }
 
         // GET: api/Diaria/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Diaria>> GetDiaria(string id)
         {
-            var diaria = await _context.Diarias.Find(x => x.Id == id).SingleOrDefaultAsync();
-
-            if (diaria == null)
+            var result = await _diariaService.GetByIdAsync(id);
+            if (result is not null)
             {
-                return NotFound();
+                return result;
             }
 
-            return diaria;
+            return NotFound();
         }
 
         //[HttpGet("ultimaDoMes/{mes}")]
@@ -78,25 +68,14 @@ namespace MqttApiPg.Controlllers
                 return BadRequest();
             }
 
-            diaria.Id = id;
+            var result = await _diariaService.UpdateAsync(id, diaria);
 
-            try
+            if (result is not null)
             {
-                await _context.Diarias.ReplaceOneAsync<Diaria>(x => x.Id == id, diaria);
-            }
-            catch (Exception ex)
-            {
-                if (!DiariaExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return new OkObjectResult(result);
             }
 
-            return NoContent();
+            return NotFound();
         }
 
         // POST: api/Diaria
@@ -104,42 +83,22 @@ namespace MqttApiPg.Controlllers
         [HttpPost]
         public async Task<ActionResult<Diaria>> PostDiaria(Diaria diaria)
         {
-            try
-            {
-                await _context.Diarias.InsertOneAsync(diaria);
-            }
-            catch (Exception ex)
-            {
-                if (DiariaExists(diaria.Id ?? string.Empty))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            await _diariaService.CreateAsync(diaria);
 
-            return CreatedAtAction("GetDiaria", new { id = diaria.Id }, diaria);
+            return CreatedAtAction(nameof(GetDiaria), new { id = diaria.Id }, diaria);
         }
 
         // DELETE: api/Diaria/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDiaria(string id)
         {
-            var diaria = await _context.Diarias.FindAsync(x => x.Id == id);
-            if (diaria is null)
+            var result = await _diariaService.DeleteAsync(id);
+            if (result is not null)
             {
-                return NotFound();
+                return new OkObjectResult(result);
             }
 
-            await _context.Diarias.DeleteOneAsync(x => x.Id == id);
-            return NoContent();
-        }
-
-        private bool DiariaExists(string id)
-        {
-            return _context.Diarias.Find(x => x.Id == id).Any();
+            return NotFound();
         }
     }
 }

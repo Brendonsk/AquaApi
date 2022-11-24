@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using MqttApiPg.Entities;
+using MqttApiPg.Services;
 
 namespace MqttApiPg.Controlllers
 {
@@ -8,47 +9,40 @@ namespace MqttApiPg.Controlllers
     [ApiController]
     public class RegistroController : ControllerBase
     {
-        private readonly MongoDbContext _context;
+        private readonly RegistroService _registroService;
         private readonly ILogger<RegistroController> _logger;
 
-        public RegistroController(MongoDbContext context, ILogger<RegistroController> logger)
+        public RegistroController(ILogger<RegistroController> logger, RegistroService registroService)
         {
-            _context = context;
             _logger = logger;
+            _registroService = registroService;
         }
 
         // GET: api/Registro
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Registro>>> GetRegistros()
         {
-            return await _context.Registros.Find(_ => true).ToListAsync();
+            return await _registroService.GetAsync();
         }
 
         // GET: api/Registro/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Registro>> GetRegistro(string id)
         {
-            var registro = await _context.Registros.Find(x => x.Id == id).SingleOrDefaultAsync();
+            var result = await _registroService.GetByIdAsync(id);
 
-            if (registro == null)
+            if (result == null)
             {
                 return NotFound();
             }
 
-            return registro;
+            return result;
         }
 
         [HttpGet("emAberto")]
         public async Task<ActionResult<IEnumerable<Registro>>> GetAllFalseRegistros()
         {
-            try
-            {
-                return await _context.Registros.Find(x => !x.DataSolucao.HasValue).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex);
-            }
+            return await _registroService.GetAllFalseRegistros();
         }
 
         //// PUT: api/Registro/5
@@ -63,23 +57,14 @@ namespace MqttApiPg.Controlllers
 
             registro.Id = id;
 
-            try
+            var result = await _registroService.UpdateAsync(id, registro);
+
+            if (result is not null)
             {
-                await _context.Registros.ReplaceOneAsync<Registro>(x => x.Id == id, registro);
-            }
-            catch (Exception ex)
-            {
-                if (!RegistroExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return new OkObjectResult(result);
             }
 
-            return NoContent();
+            return NotFound();
         }
 
         // POST: api/Registro
@@ -87,36 +72,22 @@ namespace MqttApiPg.Controlllers
         [HttpPost]
         public async Task<ActionResult<Registro>> PostRegistro(Registro registro)
         {
-            try
-            {
-                await _context.Registros.InsertOneAsync(registro);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Exception thrown on POST endpoint 'api/registro: {ex}", ex);
-                return BadRequest(ex);
-            }
+            await _registroService.CreateAsync(registro);
 
-            return CreatedAtAction("GetRegistro", new { id = registro.Id }, registro);
+            return CreatedAtAction(nameof(GetRegistro), new { id = registro.Id }, registro);
         }
 
         // DELETE: api/Registro/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRegistro(string id)
         {
-            var registro = await _context.Registros.FindAsync(x => x.Id == id);
-            if (registro is null)
+            var result = await _registroService.DeleteAsync(id);
+            if (result is not null)
             {
-                return NotFound();
+                return new OkObjectResult(result);
             }
 
-            await _context.Registros.DeleteOneAsync(x => x.Id == id);
-            return NoContent();
-        }
-
-        private bool RegistroExists(string id)
-        {
-            return _context.Registros.Find(x => x.Id == id).Any();
+            return NotFound();
         }
     }
 }

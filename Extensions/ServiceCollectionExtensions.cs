@@ -37,7 +37,7 @@ namespace MqttApiPg.Extensions
             services.AddSingleton<MqttClientServiceProvider>(serviceProvider =>
             {
                 var mqttClientService = serviceProvider.GetService<MqttClientService>();
-                var mqttClientServiceProvider = new MqttClientServiceProvider(mqttClientService);
+                var mqttClientServiceProvider = new MqttClientServiceProvider(mqttClientService!);
                 return mqttClientServiceProvider;
             });
             return services;

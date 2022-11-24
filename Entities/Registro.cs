@@ -4,13 +4,8 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace MqttApiPg.Entities
 {
-    public class Registro
+    public class Registro: BaseEntity
     {
-        [SwaggerSchema(ReadOnly = true)]
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string? Id { get; set; }
-
         public DateTime DataOcorrencia { get; set; }
 
         public DateTime? DataSolucao { get; set; }

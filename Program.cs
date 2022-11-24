@@ -9,6 +9,7 @@ using System.Configuration;
 using MqttApiPg.Extensions;
 using Serilog;
 using Serilog.Exceptions;
+using MqttApiPg.Services;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -36,6 +37,11 @@ builder.Services
 
 builder.Services
     .AddSingleton<MongoDbContext>()
+
+    .AddSingleton<DiariaService>()
+    .AddSingleton<MensalService>()
+    .AddSingleton<RegistroService>()
+
     .AddControllers()
     .AddJsonOptions(
         options => options.JsonSerializerOptions.PropertyNamingPolicy = null);

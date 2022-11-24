@@ -134,5 +134,10 @@ namespace MqttApiPg.Services
             }
             await mqttClient.DisconnectAsync();
         }
+
+        public async Task PublishOnValvulaTopic(string payload)
+        {
+            //var result = mqttClient.PublishAsync(new MqttApplicationMessageBuilder().wi)
+        }
     }
 }

@@ -5,13 +5,8 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace MqttApiPg.Entities
 {
-    public class Diaria
+    public class Diaria: BaseEntity
     {
-        [SwaggerSchema(ReadOnly = true)]
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string? Id { get; set; }
-
         public decimal Valor { get; set; }
 
         [BsonRepresentation(BsonType.DateTime)]
