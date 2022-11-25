@@ -1,4 +1,5 @@
-﻿using MQTTnet;
+﻿using MqttApiPg.Entities;
+using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
 using System.Text;
@@ -11,12 +12,14 @@ namespace MqttApiPg.Services
         private readonly MqttClientOptions options;
         private readonly ILogger<MqttClientService> _logger;
         private readonly string _clientId = "Heroku mqtt client";
+        private readonly DiariaService _diariaService;
 
-        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger)
+        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger, DiariaService diariaService = null)
         {
             this.options = options;
             mqttClient = new MqttFactory().CreateMqttClient();
             _logger = logger;
+            _diariaService = diariaService;
             ConfigureMqttClient();
         }
 
@@ -26,18 +29,42 @@ namespace MqttApiPg.Services
             mqttClient.ApplicationMessageReceivedAsync += HandleApplicationMessageReceivedAsync;
         }
 
-        private Task HandleApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
+        private async Task HandleApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
         {
             try
             {
-                args.IsHandled = true;
+                if (!args.ClientId.Equals(this._clientId))
+                {
+                    var msg = args.ApplicationMessage;
+                    if (msg?.Topic.Equals("pg") ?? false)
+                    {
+                        if (decimal.TryParse(Encoding.UTF8.GetString(msg!.Payload), out decimal medida))
+                        {
+                            await _diariaService.CreateAsync(new Diaria()
+                            {
+                                Valor = medida,
+                                DiaHora = DateTime.Now,
+                                Situacao = true
+                            });
+                            args.IsHandled = true;
+                        }
+                    }
+                }
+
+                if (!args.IsHandled)
+                {
+                    this._logger.LogInformation("a mensagem do cliente {client} foi interpretada com sucesso", args.ClientId);
+                }
+                else
+                {
+                    this._logger.LogError("ocorreu um erro ao interpretar a mensagem do cliente {client}", args.ClientId);
+                }
                 this.LogMessage(args);
-                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 this._logger.LogError("An error occurred: {exception}", ex);
-                return Task.FromException(ex);
+                throw;
             }
         }
 
