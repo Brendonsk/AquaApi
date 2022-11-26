@@ -13,10 +13,11 @@ namespace MqttApiPg.Services
         private readonly ILogger<MqttClientService> _logger;
         private readonly string _clientId = "Heroku mqtt client";
         private readonly DiariaService _diariaService;
+        private readonly RegistroService _registroService;
 
         public IMqttClient mqttClient { get; set; }
 
-        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger, DiariaService diariaService)
+        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger, DiariaService diariaService, RegistroService registroService)
         {
             this.options = options;
             _logger = logger;
@@ -24,6 +25,7 @@ namespace MqttApiPg.Services
 
             mqttClient = new MqttFactory().CreateMqttClient();
             ConfigureMqttClient();
+            _registroService = registroService;
         }
 
         private void ConfigureMqttClient()
@@ -53,6 +55,27 @@ namespace MqttApiPg.Services
                                         DiaHora = DateTime.Now
                                     });
                                     args.IsHandled = true;
+
+                                    DateTime hoje = DateTime.Now;
+                                    Diaria? ultimaDiaria = await _diariaService.GetUltimaDiariaDoMes(hoje.Year, hoje.Month);
+
+                                    if (medida > (ultimaDiaria?.Valor ?? 0)*(decimal)1.1)
+                                    {
+                                        try
+                                        {
+                                            await _registroService.CreateAsync(new Registro()
+                                            {
+                                                DataOcorrencia = hoje,
+                                                Mensagem = "mockMsg",
+                                                Decisao = false
+                                            });
+                                        }
+                                        catch (Exception)
+                                        {
+                                            _logger.LogError("registro não pode ser inserido");
+                                            throw;
+                                        }
+                                    }
                                 }
                                 catch (Exception)
                                 {

@@ -10,23 +10,7 @@ namespace MqttApiPg.Services
 
         public async Task<List<Diaria>> GetDiariasByMonthOfYear(int ano, int mes)
         {
-            //PipelineDefinition<Diaria, BsonDocument> pipeline = new BsonDocument[]
-            //{
-            //    new BsonDocument("$project", new BsonDocument()
-            //            .Add("mes", new BsonDocument()
-            //                    .Add("$month", "$DiaHora")
-            //            )
-            //            .Add("ano", new BsonDocument()
-            //                    .Add("$year", "$DiaHora")
-            //            )
-            //            .Add("root", "$$ROOT")),
-            //    new BsonDocument("$match", new BsonDocument()
-            //            .Add("mes", mes)),
-            //    new BsonDocument("$match", new BsonDocument()
-            //            .Add("ano", ano))
-            //};
-
-            var startOfMonth = new DateTime(ano, mes, 1, 0, 0, 0, DateTimeKind.Local);
+            var startOfMonth = new DateTime(ano, mes, 1, 0, 0, 0);
             var startOfNextMonth = startOfMonth.AddMonths(1);
             var bldr = Builders<Diaria>.Filter;
             var expenseMonthFilter = bldr.And(
@@ -37,5 +21,12 @@ namespace MqttApiPg.Services
                 (await collection.FindAsync(expenseMonthFilter)).ToListAsync();
 
         }
+
+        public async Task<Diaria?> GetUltimaDiariaDoMes(int ano, int mes)
+        {
+            return (await GetDiariasByMonthOfYear(ano, mes))
+                .OrderBy(x => x.DiaHora)
+                .FirstOrDefault();
+        } 
     }
 }
