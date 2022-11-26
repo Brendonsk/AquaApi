@@ -10,6 +10,7 @@ using MqttApiPg.Extensions;
 using Serilog;
 using Serilog.Exceptions;
 using MqttApiPg.Services;
+using Quartz;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -47,6 +48,19 @@ builder.Services
     .AddJsonOptions(
         options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
+builder.Services.AddQuartz(config =>
+{
+    config.UseMicrosoftDependencyInjectionJobFactory();
+    var jobKey = new JobKey("MensalJob");
+    config.AddJob<MensalJob>(opts => opts.WithIdentity(jobKey));
+
+    config.AddTrigger(opts => opts
+        .ForJob(jobKey)
+        .WithIdentity("MensalJob-trigger")
+        //.WithCronSchedule("0 0 1 * * ?"));
+        .WithCronSchedule("0 0/2 * * * ?"));
+});
+
 builder.Services.AddMqttClientHostedService();
 
 builder.Services
@@ -60,10 +74,6 @@ app.UseAuthorization();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
-    //endpoints.MapConnectionHandler<MqttConnectionHandler>(
-    //    "/mqtt",
-    //    httpConnectionDispatcherOptions => httpConnectionDispatcherOptions.WebSockets.SubProtocolSelector =
-    //        protocolList => protocolList.FirstOrDefault() ?? string.Empty);
 });
 
 if (app.Environment.IsDevelopment())
@@ -74,8 +84,6 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("./swagger/v1/swagger.json", "v1");
         options.RoutePrefix = string.Empty;
     });
-    //app.UseHsts();
-    //app.UseHttpsRedirection();
 }
 
 app.Run();
