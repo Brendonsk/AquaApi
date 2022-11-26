@@ -11,7 +11,5 @@ namespace MqttApiPg.Entities
 
         [BsonRepresentation(BsonType.DateTime)]
         public DateTime DiaHora { get; set; }
-
-        public bool Situacao { get; set; }
     }
 }

@@ -43,27 +43,26 @@ namespace MqttApiPg.Services
                     switch (msg?.Topic)
                     {
                         case "pg":
-                            //if (decimal.TryParse(Encoding.UTF8.GetString(msg!.Payload), out decimal medida))
-                            //{
-                            //    try
-                            //    {
-                            //        await _diariaService.CreateAsync(new Diaria()
-                            //        {
-                            //            Valor = medida,
-                            //            DiaHora = DateTime.Now,
-                            //            Situacao = true
-                            //        });
-                            //        args.IsHandled = true;
-                            //    }
-                            //    catch (Exception)
-                            //    {
-                            //        _logger.LogError("Erro ao inserir na tabela diária");
-                            //    }
-                            //}
-                            //else
-                            //{
-                            //    _logger.LogError("Formato da payload inválido");
-                            //}
+                            if (decimal.TryParse(Encoding.UTF8.GetString(msg!.Payload), out decimal medida))
+                            {
+                                try
+                                {
+                                    await _diariaService.CreateAsync(new Diaria()
+                                    {
+                                        Valor = medida,
+                                        DiaHora = DateTime.Now
+                                    });
+                                    args.IsHandled = true;
+                                }
+                                catch (Exception)
+                                {
+                                    _logger.LogError("Erro ao inserir na tabela diária");
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogError("Formato da payload inválido");
+                            }
 
                             break;
 
@@ -76,15 +75,15 @@ namespace MqttApiPg.Services
                     }
                 }
 
-                //if (!args.IsHandled)
-                //{
-                //    this._logger.LogInformation("Mensagem do cliente interpretada com sucesso");
-                //}
+                if (!args.IsHandled)
+                {
+                    this._logger.LogInformation("Mensagem do cliente interpretada com sucesso");
+                }
 
-                //else
-                //{
-                //    this._logger.LogError("Ocorreu um erro ao interpretar a mensagem");
-                //}
+                else
+                {
+                    this._logger.LogError("Ocorreu um erro ao interpretar a mensagem");
+                }
             }
             catch (Exception ex)
             {
