@@ -1,6 +1,7 @@
 ﻿using MqttApiPg.Services;
 using MqttApiPg.Settings;
 using MQTTnet.Client;
+using System.Text;
 
 namespace MqttApiPg.Extensions
 {
@@ -16,6 +17,7 @@ namespace MqttApiPg.Extensions
                 aspOptionBuilder
                     .WithCredentials(clientSettinigs.UserName, clientSettinigs.Password)
                     .WithClientId(clientSettinigs.Id)
+                    .WithCredentials(new MqttClientCredentials("ApiRegistro", Encoding.UTF8.GetBytes("noesnograu")))
                     .WithTcpServer(brokerHostSettings.Host, brokerHostSettings.Port);
             });
             return services;

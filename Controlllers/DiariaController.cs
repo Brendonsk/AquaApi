@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using MqttApiPg.Entities;
 using MqttApiPg.Services;
 
@@ -9,10 +10,12 @@ namespace MqttApiPg.Controlllers
     public class DiariaController : ControllerBase
     {
         private readonly DiariaService _diariaService;
+        private readonly ILogger<DiariaController> _logger;
 
-        public DiariaController(DiariaService diariaService)
+        public DiariaController(DiariaService diariaService, ILogger<DiariaController> logger)
         {
             _diariaService = diariaService;
+            _logger = logger;
         }
 
         // GET: api/Diaria
@@ -20,6 +23,14 @@ namespace MqttApiPg.Controlllers
         public async Task<ActionResult<IEnumerable<Diaria>>> GetDiariasAsync()
         {
             return await _diariaService.GetAsync();
+        }
+
+        [HttpGet("porMesDeAno/{ano}/{mes}")]
+        public async Task<ActionResult<IEnumerable<Diaria>>> GetDiariasPorMesDeAnoAsync(int ano, int mes)
+        {
+            var res = await _diariaService.GetDiariasByMonthOfYear(ano, mes);
+            _logger.LogInformation(res.ToString());
+            return res;
         }
 
         // GET: api/Diaria/5
@@ -38,24 +49,7 @@ namespace MqttApiPg.Controlllers
         //[HttpGet("ultimaDoMes/{mes}")]
         //public async Task<ActionResult<Diaria?>> GetUltimaLeituraDiariaDoMes(int mes)
         //{
-        //    //FilterDefinition<Diaria> filter = Builders<Diaria>.Filter.
-
-        //    try
-        //    {
-        //        var coll = _context.Diarias.AsQueryable()
-        //            .GroupBy(x => x.DiaHora.Truncate(DateTimeUnit.Month))
-        //            .Select(x => new { Bucket = x.Key, FirstDocumentInBucket = x.First() });
-
-        //        var coll2 = _context.Diarias.AsQueryable()
-        //            .Where<Diaria>(x => (x.DiaHora.Truncate(DateTimeUnit.Month)).Month.Equals(mes))
-        //            .FirstOrDefaultAsync();
-
-        //        return await coll2;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return BadRequest(ex);
-        //    }
+        //    throw new NotImplementedException();
         //}
 
         //// PUT: api/Diaria/5

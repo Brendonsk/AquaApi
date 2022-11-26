@@ -41,6 +41,7 @@ builder.Services
     .AddSingleton<DiariaService>()
     .AddSingleton<MensalService>()
     .AddSingleton<RegistroService>()
+    .AddSingleton<ValvulaService>()
 
     .AddControllers()
     .AddJsonOptions(

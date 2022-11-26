@@ -1,4 +1,5 @@
-﻿using MqttApiPg.Entities;
+﻿using MongoDB.Driver;
+using MqttApiPg.Entities;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
@@ -8,18 +9,20 @@ namespace MqttApiPg.Services
 {
     public class MqttClientService : IMqttClientService
     {
-        private readonly IMqttClient mqttClient;
         private readonly MqttClientOptions options;
         private readonly ILogger<MqttClientService> _logger;
         private readonly string _clientId = "Heroku mqtt client";
         private readonly DiariaService _diariaService;
 
-        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger, DiariaService diariaService = null)
+        public IMqttClient mqttClient { get; set; }
+
+        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger, DiariaService diariaService)
         {
             this.options = options;
-            mqttClient = new MqttFactory().CreateMqttClient();
             _logger = logger;
             _diariaService = diariaService;
+
+            mqttClient = new MqttFactory().CreateMqttClient();
             ConfigureMqttClient();
         }
 
@@ -33,37 +36,59 @@ namespace MqttApiPg.Services
         {
             try
             {
+                this.LogMessage(args);
                 if (!args.ClientId.Equals(this._clientId))
                 {
                     var msg = args.ApplicationMessage;
-                    if (msg?.Topic.Equals("pg") ?? false)
+                    switch (msg?.Topic)
                     {
-                        if (decimal.TryParse(Encoding.UTF8.GetString(msg!.Payload), out decimal medida))
-                        {
-                            await _diariaService.CreateAsync(new Diaria()
-                            {
-                                Valor = medida,
-                                DiaHora = DateTime.Now,
-                                Situacao = true
-                            });
-                            args.IsHandled = true;
-                        }
+                        case "pg":
+                            //if (decimal.TryParse(Encoding.UTF8.GetString(msg!.Payload), out decimal medida))
+                            //{
+                            //    try
+                            //    {
+                            //        await _diariaService.CreateAsync(new Diaria()
+                            //        {
+                            //            Valor = medida,
+                            //            DiaHora = DateTime.Now,
+                            //            Situacao = true
+                            //        });
+                            //        args.IsHandled = true;
+                            //    }
+                            //    catch (Exception)
+                            //    {
+                            //        _logger.LogError("Erro ao inserir na tabela diária");
+                            //    }
+                            //}
+                            //else
+                            //{
+                            //    _logger.LogError("Formato da payload inválido");
+                            //}
+
+                            break;
+
+                        default:
+                            _logger.LogError(
+                                "Tópico inválido: {topico}",
+                                msg?.Topic ?? "[nulo]");
+
+                            break;
                     }
                 }
 
-                if (!args.IsHandled)
-                {
-                    this._logger.LogInformation("a mensagem do cliente {client} foi interpretada com sucesso", args.ClientId);
-                }
-                else
-                {
-                    this._logger.LogError("ocorreu um erro ao interpretar a mensagem do cliente {client}", args.ClientId);
-                }
-                this.LogMessage(args);
+                //if (!args.IsHandled)
+                //{
+                //    this._logger.LogInformation("Mensagem do cliente interpretada com sucesso");
+                //}
+
+                //else
+                //{
+                //    this._logger.LogError("Ocorreu um erro ao interpretar a mensagem");
+                //}
             }
             catch (Exception ex)
             {
-                this._logger.LogError("An error occurred: {exception}", ex);
+                this._logger.LogError("Erro não identificado: {exception}", ex);
                 throw;
             }
         }
@@ -79,22 +104,13 @@ namespace MqttApiPg.Services
                 payload,
                 args.ApplicationMessage?.QualityOfServiceLevel,
                 args.ApplicationMessage?.Retain);
-
-            if (!args.ClientId.Equals(_clientId) && (args.ApplicationMessage?.Topic.Equals("valvula/abrir") ?? false))
-            {
-                mqttClient.PublishAsync(new MqttApplicationMessageBuilder()
-                    .WithPayload("recebido chefe")
-                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
-                    .WithTopic("valvulaLog")
-                    .Build());
-            }
         }
 
         private async Task HandleConnectedAsync(MqttClientConnectedEventArgs args)
         {
             this.LogMessage(args);
-            await mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("pg").Build());
-            await mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("Rele").Build());
+            await mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("pg").WithExactlyOnceQoS().Build());
+            await mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("Rele").WithExactlyOnceQoS().Build());
         }
 
         private void LogMessage(MqttClientConnectedEventArgs args)
@@ -109,12 +125,6 @@ namespace MqttApiPg.Services
         {
             await mqttClient.ConnectAsync(options);
 
-            #region Reconnect_Using_Timer:https://github.com/dotnet/MQTTnet/blob/master/Samples/Client/Client_Connection_Samples.cs
-            /* 
-             * This sample shows how to reconnect when the connection was dropped.
-             * This approach uses a custom Task/Thread which will monitor the connection status.
-            * This is the recommended way but requires more custom code!
-           */
             _ = Task.Run(
                async () =>
                {
@@ -122,11 +132,9 @@ namespace MqttApiPg.Services
                    {
                        try
                        {
-                           // This code will also do the very first connect! So no call to _ConnectAsync_ is required in the first place.
                            if (!await mqttClient.TryPingAsync(cancellationToken))
                            {
-                               await mqttClient.ConnectAsync(mqttClient.Options, cancellationToken);
-
+                               var res = await mqttClient.ConnectAsync(mqttClient.Options, cancellationToken);
                                // Subscribe to topics when session is clean etc.
                                
                                _logger.LogInformation("The MQTT client is connected.");
@@ -134,18 +142,15 @@ namespace MqttApiPg.Services
                        }
                        catch (Exception ex)
                        {
-                           // Handle the exception properly (logging etc.).
                            _logger.LogError(ex, "The MQTT client  connection failed");
                        }
                        finally
                        {
-                           // Check the connection state every 3 seconds and perform a reconnect if required.
-                           await Task.Delay(TimeSpan.FromSeconds(1));
+                           await Task.Delay(TimeSpan.FromSeconds(3));
                        }
                    }
                }
             );
-            #endregion
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -162,9 +167,6 @@ namespace MqttApiPg.Services
             await mqttClient.DisconnectAsync();
         }
 
-        public async Task PublishOnValvulaTopic(string payload)
-        {
-            //var result = mqttClient.PublishAsync(new MqttApplicationMessageBuilder().wi)
-        }
+        
     }
 }
