@@ -135,7 +135,7 @@ namespace MqttApiPg.Services
 
         private async Task HandleConnectedAsync(MqttClientConnectedEventArgs args)
         {
-            //this.LogMessage(args);
+            this.LogMessage(args);
             await mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("pg").WithExactlyOnceQoS().Build());
             await mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("Rele").WithExactlyOnceQoS().Build());
         }
@@ -163,13 +163,13 @@ namespace MqttApiPg.Services
                            {
                                var res = await mqttClient.ConnectAsync(mqttClient.Options, cancellationToken);
                                // Subscribe to topics when session is clean etc.
-                               
-                               //_logger.LogInformation("The MQTT client is connected.");
+
+                               _logger.LogInformation("The MQTT client is connected.");
                            }
                        }
                        catch (Exception ex)
                        {
-                           //_logger.LogError(ex, "The MQTT client  connection failed");
+                           _logger.LogError(ex, "The MQTT client  connection failed");
                        }
                        finally
                        {
