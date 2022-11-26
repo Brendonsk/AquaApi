@@ -13,19 +13,21 @@ namespace MqttApiPg.Services
         private readonly ILogger<MqttClientService> _logger;
         private readonly string _clientId = "Heroku mqtt client";
         private readonly DiariaService _diariaService;
+        private readonly MensalService _mensalService;
         private readonly RegistroService _registroService;
 
         public IMqttClient mqttClient { get; set; }
 
-        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger, DiariaService diariaService, RegistroService registroService)
+        public MqttClientService(MqttClientOptions options, ILogger<MqttClientService> logger, DiariaService diariaService, RegistroService registroService, MensalService mensalService)
         {
             this.options = options;
             _logger = logger;
             _diariaService = diariaService;
+            _registroService = registroService;
+            _mensalService = mensalService;
 
             mqttClient = new MqttFactory().CreateMqttClient();
             ConfigureMqttClient();
-            _registroService = registroService;
         }
 
         private void ConfigureMqttClient()
@@ -49,17 +51,20 @@ namespace MqttApiPg.Services
                             {
                                 try
                                 {
+                                    var hoje = DateTime.Now;
                                     await _diariaService.CreateAsync(new Diaria()
                                     {
                                         Valor = medida,
-                                        DiaHora = DateTime.Now
+                                        DiaHora = hoje
                                     });
                                     args.IsHandled = true;
 
-                                    DateTime hoje = DateTime.Now;
-                                    Diaria? ultimaDiaria = await _diariaService.GetUltimaDiariaDoMes(hoje.Year, hoje.Month);
+                                    Mensal? ultimoMes = await _mensalService.GetPorMesEAno(hoje.Year, hoje.Month);
 
-                                    if (medida > (ultimaDiaria?.Valor ?? 0)*(decimal)1.1)
+                                    decimal mediaConsumoPorDia = (ultimoMes?.ConsumoTotal) ?? 0 / DateTime.DaysInMonth(hoje.Year, hoje.Month);
+                                    decimal mediaConsumoPorHora = mediaConsumoPorDia / 24;
+
+                                    if (medida/1000 > mediaConsumoPorHora * (decimal)1.1)
                                     {
                                         try
                                         {

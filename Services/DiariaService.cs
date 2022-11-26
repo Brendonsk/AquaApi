@@ -27,6 +27,6 @@ namespace MqttApiPg.Services
             return (await GetDiariasByMonthOfYear(ano, mes))
                 .OrderBy(x => x.DiaHora)
                 .FirstOrDefault();
-        } 
+        }
     }
 }
