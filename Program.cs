@@ -58,8 +58,9 @@ builder.Services.AddQuartz(config =>
         .ForJob(jobKey)
         .WithIdentity("MensalJob-trigger")
         //.WithCronSchedule("0 0 1 * * ?"));
-        .WithCronSchedule("0 0/2 * * * ?"));
+        .WithCronSchedule("0 0/2 * * * ?").StartNow());
 });
+builder.Services.AddTransient<MensalJob>();
 
 builder.Services.AddMqttClientHostedService();
 

@@ -41,7 +41,7 @@ namespace MqttApiPg.Controlllers
         [HttpGet("ano/{ano}")]
         public async Task<ActionResult<IEnumerable<Mensal>>> GetByAno(int ano)
         {
-            throw new NotImplementedException();
+            return await _mensalService.GetByAno(ano);
         }
 
         //// PUT: api/Mensal/5

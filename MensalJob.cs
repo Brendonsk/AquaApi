@@ -16,6 +16,7 @@ namespace MqttApiPg
 
         public async Task Execute(IJobExecutionContext context)
         {
+            throw new NotImplementedException();
             _logger.LogInformation("Iniciando job para registro de consumo mensal...");
             await _mensalService.SalvaConsumoMesAnterior();
         }

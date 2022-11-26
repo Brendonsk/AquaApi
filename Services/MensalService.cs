@@ -17,6 +17,12 @@ namespace MqttApiPg.Services
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<List<Mensal>> GetByAno(int ano)
+        {
+            return await (await collection.FindAsync(x => x.Ano.Equals(ano)))
+                .ToListAsync();
+        }
+
         public async Task SalvaConsumoMesAnterior()
         {
             DateTime hojeUmMesAtras = DateTime.Now;
