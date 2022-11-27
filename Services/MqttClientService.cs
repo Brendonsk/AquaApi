@@ -52,6 +52,7 @@ namespace MqttApiPg.Services
                                 try
                                 {
                                     var hoje = DateTime.Now;
+                                    var umMesAtras = hoje.AddMonths(-1);
                                     await _diariaService.CreateAsync(new Diaria()
                                     {
                                         Valor = medida,
@@ -59,19 +60,20 @@ namespace MqttApiPg.Services
                                     });
                                     args.IsHandled = true;
 
-                                    Mensal? ultimoMes = await _mensalService.GetPorMesEAno(hoje.Year, hoje.Month);
+                                    Mensal? ultimoMes = await _mensalService.GetPorMesEAno(umMesAtras.Year, umMesAtras.Month);
 
-                                    decimal mediaConsumoPorDia = (ultimoMes?.ConsumoTotal) ?? 0 / DateTime.DaysInMonth(hoje.Year, hoje.Month);
+                                    decimal mediaConsumoPorDia = ((ultimoMes?.ConsumoTotal) ?? 0) / DateTime.DaysInMonth(umMesAtras.Year, umMesAtras.Month);
                                     decimal mediaConsumoPorHora = mediaConsumoPorDia / 24;
+                                    decimal medidaParaLitros = medida / 1000;
 
-                                    if (medida/1000 > mediaConsumoPorHora * (decimal)1.1)
+                                    if (medidaParaLitros > mediaConsumoPorHora * (decimal)1.1)
                                     {
                                         try
                                         {
                                             await _registroService.CreateAsync(new Registro()
                                             {
                                                 DataOcorrencia = hoje,
-                                                Mensagem = "mockMsg",
+                                                Mensagem = "Aumento identificado",
                                                 Decisao = false
                                             });
                                         }

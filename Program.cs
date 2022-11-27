@@ -48,19 +48,19 @@ builder.Services
     .AddJsonOptions(
         options => options.JsonSerializerOptions.PropertyNamingPolicy = null);
 
-builder.Services.AddQuartz(config =>
-{
-    config.UseMicrosoftDependencyInjectionJobFactory();
-    var jobKey = new JobKey("MensalJob");
-    config.AddJob<MensalJob>(opts => opts.WithIdentity(jobKey));
+//builder.Services.AddQuartz(config =>
+//{
+//    config.UseMicrosoftDependencyInjectionJobFactory();
+//    var jobKey = new JobKey("MensalJob");
+//    config.AddJob<MensalJob>(opts => opts.WithIdentity(jobKey));
 
-    config.AddTrigger(opts => opts
-        .ForJob(jobKey)
-        .WithIdentity("MensalJob-trigger")
-        //.WithCronSchedule("0 0 1 * * ?"));
-        .WithCronSchedule("0 0/2 * * * ?").StartNow());
-});
-builder.Services.AddTransient<MensalJob>();
+//    config.AddTrigger(opts => opts
+//        .ForJob(jobKey)
+//        .WithIdentity("MensalJob-trigger")
+//        .WithCronSchedule("0 0/2 * * * ?")
+//        .StartNow());
+//});
+//builder.Services.AddTransient<MensalJob>();
 
 builder.Services.AddMqttClientHostedService();
 

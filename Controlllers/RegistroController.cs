@@ -89,5 +89,12 @@ namespace MqttApiPg.Controlllers
 
             return NotFound();
         }
+
+        [HttpDelete("mensagem/{msg}")]
+        public async Task<IActionResult> DeleteRegistrosByMensagem(string msg)
+        {
+            await _registroService.DeleteRegistrosByMessage(msg);
+            return Ok();
+        }
     }
 }

@@ -26,7 +26,7 @@ namespace MqttApiPg.Services
         public async Task SalvaConsumoMesAnterior()
         {
             DateTime hojeUmMesAtras = DateTime.Now;
-            hojeUmMesAtras.AddMonths(-1);
+            hojeUmMesAtras = hojeUmMesAtras.AddMonths(-1);
             var diarias = await _diariaService.GetDiariasByMonthOfYear(hojeUmMesAtras.Year, hojeUmMesAtras.Month);
             int numeroRegistros = diarias.Count();
 

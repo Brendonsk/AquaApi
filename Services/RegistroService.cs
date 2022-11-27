@@ -12,5 +12,10 @@ namespace MqttApiPg.Services
             return await
                 (await collection.FindAsync(x => !x.DataSolucao.HasValue)).ToListAsync();
         }
+
+        public async Task DeleteRegistrosByMessage(string message)
+        {
+           await collection.DeleteManyAsync(x => x.Mensagem.Equals(message));
+        }
     }
 }
