@@ -17,7 +17,7 @@ jobs:
             with:
                 heroku_api_key: ${{secrets.HEROKU_API_KEY}}
                 heroku_email: "brendonbenevides@gmail.com"
-                heroku_app_name: "dotnet-deploy-test"
+                heroku_app_name: "aqua-api-mqtt"
                 branch: "master"
                 usedocker: "true"
             env:
